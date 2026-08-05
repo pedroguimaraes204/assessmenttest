@@ -70,3 +70,15 @@ jobs:
             -p "${{ secrets.ARM_CLIENT_SECRET }}" \
             --tenant "${{ secrets.ARM_TENANT_ID }}"
           az account set --subscription "${{ secrets.ARM_SUBSCRIPTION_ID }}"
+
+               
+      - name: Upload build to $web container
+        working-directory: ${{ github.workspace }}
+        run: |
+          ACCOUNT_KEY=$(az storage account keys list --account-name ${{ steps.storage.outputs.name }} --query '[0].value' -o tsv)
+          az storage blob upload-batch \
+          --account-name ${{ steps.storage.outputs.name }} \
+          --account-key "$ACCOUNT_KEY" \
+          -d '$web' \
+          -s ./build \
+          --overwrite
