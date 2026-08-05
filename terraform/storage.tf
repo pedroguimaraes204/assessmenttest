@@ -1,0 +1,22 @@
+resource "azurerm_storage_account" "application" {
+  name                     = "stg${var.project_name}${terraform.workspace}"
+  resource_group_name      = azurerm_resource_group.rg-main-application.name
+  location                 = azurerm_resource_group.rg-main-application.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+  account_kind = "StorageV2"
+
+  tags = {
+    environment = "staging"
+  }
+}
+
+resource "azurerm_storage_account_static_website" "application-swebsite" {
+  storage_account_id = azurerm_storage_account.application.id
+  error_404_document = "custom_not_found.html"
+  index_document     = "custom_index.html"
+}
+
+output "storage_account_name" {
+  value = azurerm_storage_account.application.name
+}

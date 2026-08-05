@@ -1,0 +1,69 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches:
+      - devel
+      - stage
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    env:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.12.2"
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=rg-fs-assessment" \
+            -backend-config="storage_account_name=stggitopsassessment" \
+            -backend-config="container_name=tfstate" \
+            -backend-config="key=rdicidr.terraform.tfstate"
+
+      - name: Select Workspace
+        working-directory: terraform
+        run: terraform workspace select ${{ github.ref_name }} || terraform workspace new ${{ github.ref_name }}
+
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: terraform
+        run: terraform apply -auto-approve tfplan
+
+      - name: Get Storage Account name
+        id: storage
+        working-directory: terraform
+        run: echo "name=$(terraform output -raw storage_account_name)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Build application
+        working-directory: ${{ github.workspace }}
+        run: |
+          npm install
+          npm run build
+
+      - name: Azure CLI Login
+        run: |
+          az login --service-principal \
+            -u ${{ secrets.ARM_CLIENT_ID }} \
