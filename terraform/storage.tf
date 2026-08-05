@@ -20,3 +20,7 @@ resource "azurerm_storage_account_static_website" "application-swebsite" {
 output "storage_account_name" {
   value = azurerm_storage_account.application.name
 }
+
+output "static_website_url" {
+  value = azurerm_storage_account.application.primary_web_endpoint
+}
