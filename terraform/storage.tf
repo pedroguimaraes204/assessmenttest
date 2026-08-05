@@ -13,8 +13,8 @@ resource "azurerm_storage_account" "application" {
 
 resource "azurerm_storage_account_static_website" "application-swebsite" {
   storage_account_id = azurerm_storage_account.application.id
-  error_404_document = "custom_not_found.html"
-  index_document     = "custom_index.html"
+  index_document = "index.html"
+  error_404_document = "index.html"
 }
 
 output "storage_account_name" {
